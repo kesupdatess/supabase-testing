@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Live Voting</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 30px; color: #38bdf8; font-size: 2.5rem; }
+        
+        .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 1px solid #334155; }
+        .card h2 { color: #38bdf8; margin-bottom: 16px; font-size: 1.5rem; }
+        
+        input, button { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 1rem; }
+        input:focus { outline: none; border-color: #38bdf8; }
+        button { background: #38bdf8; color: #0f172a; border: none; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        button:hover { background: #0ea5e9; transform: translateY(-2px); }
+        
+        .vote-item { background: #334155; padding: 16px; border-radius: 12px; margin-bottom: 16px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+        .vote-item:hover { background: #475569; transform: translateX(5px); }
+        .vote-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 12px; color: #f1f5f9; }
+        
+        .choice-bar { background: #1e293b; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; }
+        .choice-bar:hover { background: #0f172a; }
+        .choice-fill { position: absolute; left: 0; top: 0; height: 100%; background: rgba(56, 189, 248, 0.2); transition: width 0.5s ease; z-index: 0; }
+        .choice-text { position: relative; z-index: 1; font-weight: 500; }
+        .choice-percent { position: relative; z-index: 1; font-weight: bold; color: #38bdf8; }
+        
+        .create-section { display: flex; gap: 10px; flex-wrap: wrap; }
+        .create-section input { flex: 1; min-width: 200px; margin-bottom: 0; }
+        .create-section button { width: auto; padding: 12px 24px; margin-bottom: 0; }
+        
+        .empty-state { text-align: center; padding: 40px; color: #94a3b8; }
+        .loading { text-align: center; padding: 20px; color: #38bdf8; }
+        
+        .badge { display: inline-block; padding: 4px 8px; background: #38bdf8; color: #0f172a; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-bottom: 8px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.3s ease forwards; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗳️ Live Voting System</h1>
+        
+        <!-- Create Voting Session -->
+        <div class="card">
+            <h2>Create New Vote</h2>
+            <input type="text" id="voteTitle" placeholder="Enter vote title..." />
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <input type="text" id="choice1" placeholder="Choice 1" style="flex: 1;" />
+                <input type="text" id="choice2" placeholder="Choice 2" style="flex: 1;" />
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <input type="text" id="choice3" placeholder="Choice 3 (optional)" style="flex: 1;" />
+                <input type="text" id="choice4" placeholder="Choice 4 (optional)" style="flex: 1;" />
+            </div>
+            <button onclick="createVote()">Create Vote</button>
+        </div>
+
+        <!-- Active Votes -->
+        <div class="card">
+            <h2>Active Votes</h2>
+            <div id="votesList">
+                <div class="loading">Loading votes...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== AAPKE SUPABASE CREDENTIALS ====================
+        const SUPABASE_URL = 'https://uegdizdnminwhkxcdcle.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZ2RpemRubWlud2hreGNkY2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODk2MjgsImV4cCI6MjA5NzY2NTYyOH0.2wiAHbaoNoDva_tRseDAywVMu_6AioCGlVLgoVb0d6s';
+        // =====================================================================
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let votesData = [];
+
+        // Pehle se question create karo (sirf ek baar)
+        async function seedDefaultVote() {
+            const { data: existing } = await supabase
+                .from('voting_sessions')
+                .select('*')
+                .eq('title', 'Name?')
+                .single();
+            
+            if (!existing) {
+                await supabase.from('voting_sessions').insert([{
+                    title: 'Name?',
+                    choices: ['Harsh', 'Rasm', 'Mukund', 'Suresh'],
+                    scores: [0, 0, 0, 0]
+                }]);
+            }
+        }
+
+        // Votes fetch karo
+        async function fetchVotes() {
+            const { data, error } = await supabase
+                .from('voting_sessions')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error:', error);
+                document.getElementById('votesList').innerHTML = '<div class="empty-state">Error loading votes</div>';
+                return;
+            }
+            
+            votesData = data || [];
+            renderVotes();
+        }
+
+        // Votes render karo
+        function renderVotes() {
+            const container = document.getElementById('votesList');
+            
+            if (votesData.length === 0) {
+                container.innerHTML = '<div class="empty-state">No votes yet. Create one above!</div>';
+                return;
+            }
+
+            container.innerHTML = votesData.map(vote => {
+                const totalVotes = vote.scores.reduce((a, b) => a + b, 0);
+                
+                const choicesHtml = vote.choices.map((choice, idx) => {
+                    const votes = vote.scores[idx] || 0;
+                    const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                    
+                    return `
+                        <div class="choice-bar" onclick="castVote(${vote.id}, ${idx})">
+                            <div class="choice-fill" style="width: ${percent}%"></div>
+                            <span class="choice-text">${choice}</span>
+                            <span class="choice-percent">${votes} votes (${percent}%)</span>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="vote-item animate-in">
+                        <div class="badge">LIVE</div>
+                        <div class="vote-title">${vote.title}</div>
+                        ${choicesHtml}
+                        <div style="text-align: right; color: #94a3b8; font-size: 0.85rem; margin-top: 8px;">
+                            Total votes: ${totalVotes}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Vote karo
+        async function castVote(voteId, choiceIndex) {
+            const vote = votesData.find(v => v.id === voteId);
+            if (!vote) return;
+
+            const newScores = [...vote.scores];
+            newScores[choiceIndex] = (newScores[choiceIndex] || 0) + 1;
+
+            const { error } = await supabase
+                .from('voting_sessions')
+                .update({ scores: newScores })
+                .eq('id', voteId);
+
+            if (error) {
+                alert('Vote failed: ' + error.message);
+                return;
+            }
+        }
+
+        // Naya vote banao
+        async function createVote() {
+            const title = document.getElementById('voteTitle').value.trim();
+            const ch1 = document.getElementById('choice1').value.trim();
+            const ch2 = document.getElementById('choice2').value.trim();
+            const ch3 = document.getElementById('choice3').value.trim();
+            const ch4 = document.getElementById('choice4').value.trim();
+
+            if (!title || !ch1 || !ch2) {
+                alert('Please enter a title and at least 2 choices!');
+                return;
+            }
+
+            const choices = [ch1, ch2];
+            if (ch3) choices.push(ch3);
+            if (ch4) choices.push(ch4);
+
+            const scores = new Array(choices.length).fill(0);
+
+            const { error } = await supabase
+                .from('voting_sessions')
+                .insert([{ title, choices, scores }]);
+
+            if (error) {
+                alert('Failed to create vote: ' + error.message);
+                return;
+            }
+
+            document.getElementById('voteTitle').value = '';
+            document.getElementById('choice1').value = '';
+            document.getElementById('choice2').value = '';
+            document.getElementById('choice3').value = '';
+            document.getElementById('choice4').value = '';
+        }
+
+        // Real-time subscription
+        supabase
+            .channel('voting_sessions')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'voting_sessions' }, (payload) => {
+                fetchVotes();
+            })
+            .subscribe();
+
+        // Start
+        async function init() {
+            await seedDefaultVote();
+            await fetchVotes();
+        }
+        init();
+    </script>
+</body>
+</html>
