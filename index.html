@@ -1,281 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Name Vote - Live Results</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        h1 { text-align: center; margin-bottom: 10px; color: #38bdf8; font-size: 2rem; }
-        .subtitle { text-align: center; color: #94a3b8; margin-bottom: 30px; }
-        
-        .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 20px; border: 1px solid #334155; }
-        
-        .vote-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; color: #f1f5f9; text-align: center; }
-        
-        .choice-bar { 
-            background: #334155; 
-            padding: 14px 18px; 
-            border-radius: 12px; 
-            margin-bottom: 12px; 
-            position: relative; 
-            overflow: hidden; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .choice-bar:hover { 
-            background: #475569; 
-            transform: scale(1.02);
-        }
-        .choice-bar.voted { 
-            border: 2px solid #22c55e; 
-            cursor: default;
-        }
-        .choice-bar.voted:hover { 
-            transform: none;
-        }
-        .choice-fill { 
-            position: absolute; 
-            left: 0; 
-            top: 0; 
-            height: 100%; 
-            background: rgba(56, 189, 248, 0.2); 
-            transition: width 0.5s ease; 
-            z-index: 0; 
-        }
-        .choice-fill.my-vote { 
-            background: rgba(34, 197, 94, 0.3); 
-        }
-        .choice-text { 
-            position: relative; 
-            z-index: 1; 
-            font-weight: 500; 
-            font-size: 1.1rem;
-        }
-        .choice-count { 
-            position: relative; 
-            z-index: 1; 
-            font-weight: bold; 
-            color: #38bdf8; 
-        }
-        
-        .stats { 
-            display: flex; 
-            justify-content: space-around; 
-            margin-top: 20px; 
-            padding-top: 20px; 
-            border-top: 1px solid #334155; 
-        }
-        .stat { text-align: center; }
-        .stat-value { font-size: 1.5rem; font-weight: bold; color: #38bdf8; }
-        .stat-label { font-size: 0.85rem; color: #94a3b8; }
-        
-        .alert { 
-            padding: 12px; 
-            border-radius: 8px; 
-            margin-bottom: 16px; 
-            text-align: center; 
-            display: none; 
-        }
-        .alert-success { background: #22c55e; color: white; }
-        .alert-error { background: #ef4444; color: white; }
-        .alert-info { background: #3b82f6; color: white; }
-        
-        .loading { text-align: center; padding: 40px; color: #38bdf8; }
-        
-        .user-id-box { 
-            background: #0f172a; 
-            padding: 10px; 
-            border-radius: 8px; 
-            margin-bottom: 16px; 
-            font-size: 0.85rem; 
-            color: #94a3b8;
-            word-break: break-all;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KES Updates - Admin Hub</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    color: #fff;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header {
+    text-align: center;
+    padding: 30px 20px;
+    margin-bottom: 30px;
+  }
+  header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+  }
+  header p { font-size: 1.1rem; opacity: 0.9; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 16px;
+    padding: 25px;
+    text-decoration: none;
+    color: #fff;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+  }
+  .card:hover {
+    transform: translateY(-8px);
+    background: rgba(255,255,255,0.25);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+  }
+  .icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.2);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card h3 { font-size: 1.3rem; margin-bottom: 8px; }
+  .card p { font-size: 0.9rem; opacity: 0.85; margin-bottom: 15px; }
+  .btn {
+    background: #fff;
+    color: #764ba2;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-top: auto;
+  }
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    opacity: 0.8;
+    font-size: 0.9rem;
+  }
+  @media (max-width: 600px) {
+    header h1 { font-size: 1.8rem; }
+    .icon { width: 65px; height: 65px; font-size: 2.2rem; }
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🗳️ Live Voting</h1>
-        <p class="subtitle">Vote for your favorite name!</p>
-        
-        <div class="card">
-            <div class="alert" id="alertBox"></div>
-            <div class="user-id-box" id="userIdBox"></div>
-            
-            <div id="voteContainer">
-                <div class="loading">Loading...</div>
-            </div>
-            
-            <div class="stats" id="statsBox" style="display: none;">
-                <div class="stat">
-                    <div class="stat-value" id="totalVotes">0</div>
-                    <div class="stat-label">Total Votes</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="myVote">-</div>
-                    <div class="stat-label">My Vote</div>
-                </div>
-            </div>
-        </div>
+  <div class="container">
+    <header>
+      <h1>🎓 KES Updates Admin Hub</h1>
+      <p>One place to manage everything</p>
+    </header>
+
+    <div class="grid">
+      <a href="https://kesupdatess.github.io/kes-Updatess/" target="_blank" class="card">
+        <div class="icon">🌐</div>
+        <h3>Main Website</h3>
+        <p>Student chatbot & portal</p>
+        <div class="btn">Open →</div>
+      </a>
+
+      <a href="https://kesupdatess.github.io/KES-UPDATESS-FOUNDATION/" target="_blank" class="card">
+        <div class="icon">💝</div>
+        <h3>Donation Portal</h3>
+        <p>Public donation page</p>
+        <div class="btn">Open →</div>
+      </a>
+
+      <a href="https://kesupdatess.github.io/ADMIN-PANEL-DONATION/" target="_blank" class="card">
+        <div class="icon">💰</div>
+        <h3>Donation Admin</h3>
+        <p>Manage payments & donors</p>
+        <div class="btn">Open →</div>
+      </a>
+
+      <a href="https://kesupdatess.github.io/ADMIN-PANNEL-FOR-NOTICES-/" target="_blank" class="card">
+        <div class="icon">📢</div>
+        <h3>Notice Admin</h3>
+        <p>Post & manage notices</p>
+        <div class="btn">Open →</div>
+      </a>
     </div>
 
-    <script>
-        const SUPABASE_URL = 'https://uegdizdnminwhkxcdcle.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZ2RpemRubWlud2hreGNkY2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODk2MjgsImV4cCI6MjA5NzY2NTYyOH0.2wiAHbaoNoDva_tRseDAywVMu_6AioCGlVLgoVb0d6s';
-
-        const { createClient } = supabase;
-        const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // Unique user ID generate karo (localStorage mein save)
-        let userId = localStorage.getItem('voter_id');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substring(2, 15);
-            localStorage.setItem('voter_id', userId);
-        }
-        
-        document.getElementById('userIdBox').textContent = 'Your ID: ' + userId;
-        
-        let sessionData = null;
-        let myVoteIndex = -1;
-
-        async function loadData() {
-            // Session load karo
-            const { data: session, error: sessionError } = await client
-                .from('voting_sessions')
-                .select('*')
-                .eq('title', 'Name?')
-                .single();
-            
-            if (sessionError) {
-                showAlert('Error loading poll: ' + sessionError.message, 'error');
-                return;
-            }
-            
-            sessionData = session;
-            
-            // Check karo user ne pehle vote kiya hai kya
-            const { data: myVoteData } = await client
-                .from('user_votes')
-                .select('choice_index')
-                .eq('session_id', session.id)
-                .eq('user_id', userId)
-                .single();
-            
-            myVoteIndex = myVoteData ? myVoteData.choice_index : -1;
-            
-            renderVote();
-        }
-
-        function renderVote() {
-            if (!sessionData) return;
-            
-            const totalVotes = sessionData.scores.reduce((a, b) => a + b, 0);
-            const container = document.getElementById('voteContainer');
-            
-            const choicesHtml = sessionData.choices.map((choice, idx) => {
-                const votes = sessionData.scores[idx] || 0;
-                const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-                const isMyVote = idx === myVoteIndex;
-                const hasVoted = myVoteIndex !== -1;
-                
-                return `
-                    <div class="choice-bar ${isMyVote ? 'voted' : ''}" 
-                         onclick="${hasVoted ? '' : `castVote(${idx})`}">
-                        <div class="choice-fill ${isMyVote ? 'my-vote' : ''}" style="width: ${percent}%"></div>
-                        <span class="choice-text">
-                            ${choice} ${isMyVote ? '✅' : ''}
-                        </span>
-                        <span class="choice-count">${votes} (${percent}%)</span>
-                    </div>
-                `;
-            }).join('');
-            
-            container.innerHTML = `
-                <div class="vote-title">${sessionData.title}</div>
-                ${choicesHtml}
-            `;
-            
-            // Stats update
-            document.getElementById('totalVotes').textContent = totalVotes;
-            document.getElementById('myVote').textContent = myVoteIndex !== -1 
-                ? sessionData.choices[myVoteIndex] 
-                : 'Not voted';
-            document.getElementById('statsBox').style.display = 'flex';
-        }
-
-        async function castVote(choiceIndex) {
-            if (!sessionData) return;
-            if (myVoteIndex !== -1) {
-                showAlert('You already voted!', 'info');
-                return;
-            }
-            
-            // Pehle user_votes mein save karo
-            const { error: voteError } = await client
-                .from('user_votes')
-                .insert([{
-                    session_id: sessionData.id,
-                    user_id: userId,
-                    choice_index: choiceIndex
-                }]);
-            
-            if (voteError) {
-                if (voteError.message.includes('duplicate')) {
-                    showAlert('You already voted!', 'info');
-                    return;
-                }
-                showAlert('Vote failed: ' + voteError.message, 'error');
-                return;
-            }
-            
-            // Phir scores update karo
-            const newScores = [...sessionData.scores];
-            newScores[choiceIndex] = (newScores[choiceIndex] || 0) + 1;
-            
-            const { error: updateError } = await client
-                .from('voting_sessions')
-                .update({ scores: newScores })
-                .eq('id', sessionData.id);
-            
-            if (updateError) {
-                showAlert('Score update failed: ' + updateError.message, 'error');
-                return;
-            }
-            
-            myVoteIndex = choiceIndex;
-            showAlert(`Voted for ${sessionData.choices[choiceIndex]}!`, 'success');
-            renderVote();
-        }
-
-        function showAlert(msg, type) {
-            const box = document.getElementById('alertBox');
-            box.textContent = msg;
-            box.className = 'alert alert-' + type;
-            box.style.display = 'block';
-            setTimeout(() => box.style.display = 'none', 3000);
-        }
-
-        // Realtime subscription
-        client
-            .channel('voting_sessions')
-            .on('postgres_changes', { 
-                event: '*', 
-                schema: 'public', 
-                table: 'voting_sessions' 
-            }, () => {
-                loadData();
-            })
-            .subscribe();
-
-        // Start
-        loadData();
-    </script>
+    <footer>
+      © 2026 KES Shroff College • Admin Hub v1.0
+    </footer>
+  </div>
 </body>
 </html>
